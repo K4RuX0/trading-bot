@@ -1,0 +1,20 @@
+cd C:\Users\PC\Desktop\trading-bot
+
+python -m venv venv
+venv\Scripts\activate
+
+python main.py --mode backtest --datafile data/sample_ohlcv.csv --fast_window 10 --slow_window 30 --risk_per_trade 0.01
+
+python main.py --mode paper --datafile data/sample_ohlcv.csv
+
+python otimizar_parametros.py
+
+nao esqueça que ja de mandei todos meu arquivo do bot, com os resultado o que podemos melhorar, 
+
+me manda tudo atualizado config.py, main.py e risk_manager.py com as estratégia que vc acabou de mencionar
+
+git push
+
+API de corretoras brasileiras: Algumas corretoras brasileiras podem fornecer dados históricos do par USD/BRL por meio de suas APIs.
+Fontes de dados financeiras: Sites como Investing.com ou Yahoo Finance podem fornecer dados históricos que você pode baixar e formatar.
+APIs de dados Forex: Existem APIs específicas para dados Forex que podem fornecer dados históricos do USD/BRL.
