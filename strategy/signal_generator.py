@@ -1,4 +1,3 @@
-# strategy/signal_generator.py
 import pandas as pd
 
 class SignalGenerator:

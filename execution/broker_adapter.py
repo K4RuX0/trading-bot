@@ -1,4 +1,3 @@
-# execution/broker_adapter.py
 from binance.client import Client
 import MetaTrader5 as mt5
 import pandas as pd
