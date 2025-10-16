@@ -1,17 +1,17 @@
 # main.py
 import pandas as pd
 import numpy as np
-from utils.logger import get_logger
-from helpers.helpers import calculate_atr                   # helpers/helpers.py
-from risk_manager.risk_manager import RiskManager           # risk_manager/risk_manager.py
-from strategy.signal_generator import SignalGenerator       # strategy/signal_generator.py
-from execution.broker_adapter import BrokerAdapter          # execution/broker_adapter.py
-from otimizar_parametros import otimizar_parametros_continuo
-from config import *
-
-from binance import ThreadedWebsocketManager
 import threading
 import time
+
+from utils.logger import get_logger
+from helpers.helpers import calculate_atr                # helpers.py dentro de helpers/
+from risk_manager.risk_manager import RiskManager       # risk_manager.py dentro de risk_manager/
+from strategy.signal_generator import SignalGenerator
+from execution.broker_adapter import BrokerAdapter
+from otimizar_parametros import otimizar_parametros_continuo
+from config import *
+from binance import ThreadedWebsocketManager
 
 logger = get_logger("AutoTraderPro_HF")
 
@@ -23,6 +23,9 @@ positions = {}  # Guarda posições abertas Binance+MT5
 def process_symbol(symbol, mt5_symbol, best_params, test_mode=True):
     try:
         df = broker.get_ohlcv(symbol, INTERVAL, limit=200)
+        if df.empty:
+            logger.warning(f"[{symbol}] Sem dados OHLCV")
+            return
         price = df['close'].iloc[-1]
         atr = calculate_atr(df, ATR_PERIOD)
 
@@ -32,7 +35,10 @@ def process_symbol(symbol, mt5_symbol, best_params, test_mode=True):
         )
         signal = signal_gen.on_candle(df)
 
-        rm = RiskManager(capital=broker.get_balance("USDT"), risk_per_trade=best_params.get("risk_per_trade", MAX_RISK))
+        rm = RiskManager(
+            capital=broker.get_balance("USDT"),
+            risk_per_trade=best_params.get("risk_per_trade", MAX_RISK)
+        )
         quantity = max(rm.position_size(price, atr), LOT_MIN)
 
         # Ajuste dinâmico de risco
@@ -45,11 +51,23 @@ def process_symbol(symbol, mt5_symbol, best_params, test_mode=True):
             if signal == "BUY":
                 broker.execute_binance_order(symbol, "BUY", quantity, test_mode)
                 broker.execute_mt5_order(mt5_symbol, "SELL", quantity, test_mode)
-                positions[symbol] = {"side":"BUY","entry":price,"stop_loss":price-atr,"take_profit":price+atr*TP_MULTIPLIER,"quantity":quantity}
+                positions[symbol] = {
+                    "side": "BUY",
+                    "entry": price,
+                    "stop_loss": price - atr,
+                    "take_profit": price + atr * TP_MULTIPLIER,
+                    "quantity": quantity
+                }
             elif signal == "SELL":
                 broker.execute_binance_order(symbol, "SELL", quantity, test_mode)
                 broker.execute_mt5_order(mt5_symbol, "BUY", quantity, test_mode)
-                positions[symbol] = {"side":"SELL","entry":price,"stop_loss":price+atr,"take_profit":price-atr*TP_MULTIPLIER,"quantity":quantity}
+                positions[symbol] = {
+                    "side": "SELL",
+                    "entry": price,
+                    "stop_loss": price + atr,
+                    "take_profit": price - atr * TP_MULTIPLIER,
+                    "quantity": quantity
+                }
 
     except Exception as e:
         logger.error(f"[{symbol}] Erro no processamento: {e}")
@@ -78,8 +96,11 @@ if __name__ == "__main__":
             twm.start()
 
             for symbol in SYMBOLS_BINANCE:
-                twm.start_kline_socket(callback=lambda msg, bp=best_params: handle_socket_message(msg, bp),
-                                       symbol=symbol.lower(), interval=INTERVAL)
+                twm.start_kline_socket(
+                    callback=lambda msg, bp=best_params: handle_socket_message(msg, bp),
+                    symbol=symbol.lower(),
+                    interval=INTERVAL
+                )
 
             logger.info("WebSockets iniciados. Bot HFT 24/7 rodando...")
             while True:
