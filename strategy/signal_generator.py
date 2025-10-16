@@ -9,26 +9,18 @@ class SmartSignalGenerator:
         self.slow_window = slow_window
 
     def on_candle(self, df: pd.DataFrame):
-        if len(df) < self.slow_window:
+        if df is None or len(df) < self.slow_window:
             return None
-        fast_ma = df['close'].rolling(self.fast_window).mean().values
-        slow_ma = df['close'].rolling(self.slow_window).mean().values
-        fast_last, slow_last = fast_ma[-1], slow_ma[-1]
+        close_prices = df['close'].values.astype(float)
+        fast_ma = pd.Series(close_prices).rolling(self.fast_window).mean().values
+        slow_ma = pd.Series(close_prices).rolling(self.slow_window).mean().values
+        fast_last = fast_ma[-1]
+        slow_last = slow_ma[-1]
         if np.isnan(fast_last) or np.isnan(slow_last):
             return None
         if fast_last > slow_last:
             return "BUY"
         elif fast_last < slow_last:
             return "SELL"
-        return None
-
-    def generate_series(self, df: pd.DataFrame):
-        if len(df) < self.slow_window:
-            return pd.Series([None]*len(df), index=df.index)
-        fast_ma = df['close'].rolling(self.fast_window).mean()
-        slow_ma = df['close'].rolling(self.slow_window).mean()
-        signals = pd.Series(index=df.index, dtype=object)
-        signals[fast_ma > slow_ma] = "BUY"
-        signals[fast_ma < slow_ma] = "SELL"
-        signals[fast_ma == slow_ma] = None
-        return signals
+        else:
+            return None

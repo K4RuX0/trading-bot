@@ -3,7 +3,11 @@ import numpy as np
 
 def calculate_atr(df, period=14):
     high, low, close = df['high'], df['low'], df['close']
-    tr = pd.concat([high - low, abs(high - close.shift(1)), abs(low - close.shift(1))], axis=1).max(axis=1)
+    tr = pd.concat([
+        high - low,
+        abs(high - close.shift(1)),
+        abs(low - close.shift(1))
+    ], axis=1).max(axis=1)
     return tr.rolling(period).mean().iloc[-1]
 
 def pct(value, total):

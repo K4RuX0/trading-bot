@@ -2,6 +2,10 @@ import numpy as np
 
 class RiskManager:
     def __init__(self, capital=10000.0, risk_per_trade=0.01, min_lot=0.001):
+        if capital <= 0:
+            raise ValueError("capital deve ser positivo")
+        if not (0 < risk_per_trade <= 1):
+            raise ValueError("risk_per_trade deve estar entre 0 e 1")
         self.capital = float(capital)
         self.risk_per_trade = float(risk_per_trade)
         self.min_lot = min_lot
@@ -12,11 +16,3 @@ class RiskManager:
         risk_amount = self.capital * self.risk_per_trade
         size = risk_amount / stop_distance
         return max(size, self.min_lot)
-
-    def batch_position_size(self, prices: np.ndarray, stop_distances: np.ndarray):
-        prices = np.array(prices, dtype=float)
-        stops = np.array(stop_distances, dtype=float)
-        valid = (stops > 0) & (prices > 0)
-        sizes = np.full_like(prices, fill_value=self.min_lot, dtype=float)
-        sizes[valid] = (self.capital * self.risk_per_trade) / stops[valid]
-        return np.maximum(sizes, self.min_lot)

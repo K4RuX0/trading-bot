@@ -1,8 +1,8 @@
 from binance.client import Client
 from binance.enums import *
 import MetaTrader5 as mt5
-from utils.logger import get_logger
 import pandas as pd
+from utils.logger import get_logger
 
 logger = get_logger("BrokerAdapter")
 
@@ -18,31 +18,15 @@ class BrokerAdapter:
             logger.info(f"[BINANCE TEST] {side} {qty} {symbol}")
             return
         try:
-            self.client_binance.create_order(symbol=symbol, side=side, type=ORDER_TYPE_MARKET, quantity=qty)
+            self.client_binance.create_order(
+                symbol=symbol,
+                side=side,
+                type=ORDER_TYPE_MARKET,
+                quantity=qty
+            )
             logger.info(f"[BINANCE] Ordem executada {side} {qty} {symbol}")
         except Exception as e:
             logger.error(f"[BINANCE] Erro na ordem: {e}")
-
-    def get_ohlcv(self, symbol, interval="1h", limit=200):
-        if not self.client_binance:
-            return pd.DataFrame()
-        data = self.client_binance.get_klines(symbol=symbol, interval=interval, limit=limit)
-        df = pd.DataFrame(data, columns=[
-            "timestamp","open","high","low","close","volume","close_time",
-            "quote_asset_volume","num_trades","taker_base_vol","taker_quote_vol","ignore"
-        ])
-        df[['open','high','low','close','volume']] = df[['open','high','low','close','volume']].astype(float)
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-        return df[['timestamp','open','high','low','close','volume']]
-
-    def get_balance(self, asset="USDT"):
-        if not self.client_binance:
-            return 0
-        account_info = self.client_binance.get_account()
-        for b in account_info['balances']:
-            if b['asset'] == asset:
-                return float(b['free'])
-        return 0
 
     def execute_mt5_order(self, symbol, action, lot, test_mode=True):
         if test_mode:
@@ -73,3 +57,25 @@ class BrokerAdapter:
             logger.error(f"[MT5] Erro: {res}")
         else:
             logger.info(f"[MT5] Ordem executada {action} {lot} {symbol}")
+
+    def get_ohlcv(self, symbol, interval="1h", limit=200):
+        if not self.client_binance:
+            logger.warning("Binance não inicializado")
+            return pd.DataFrame()
+        data = self.client_binance.get_klines(symbol=symbol, interval=interval, limit=limit)
+        df = pd.DataFrame(data, columns=[
+            "timestamp","open","high","low","close","volume","close_time",
+            "quote_asset_volume","num_trades","taker_base_vol","taker_quote_vol","ignore"
+        ])
+        df[['open','high','low','close','volume']] = df[['open','high','low','close','volume']].astype(float)
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+        return df[['timestamp','open','high','low','close','volume']]
+
+    def get_balance(self, asset="USDT"):
+        if not self.client_binance:
+            return 0
+        account_info = self.client_binance.get_account()
+        for b in account_info['balances']:
+            if b['asset'] == asset:
+                return float(b['free'])
+        return 0
